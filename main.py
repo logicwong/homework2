@@ -83,9 +83,8 @@ def calcConf(freqSet, H, supportData, br1, minConf=0.7):
         conf = supportData[freqSet] / supportData[freqSet-conseq]
         lift = conf / suppData[conseq]
         if conf >= minConf:
-            print(freqSet-conseq, '-->', conseq, 'conf:', conf)
-            print(freqSet-conseq, '-->', conseq, 'lift:', lift)
-            br1.append((freqSet-conseq, conseq, conf))
+            print(freqSet-conseq, '-->', conseq, 'conf:', conf, 'lift:', lift)
+            br1.append((freqSet-conseq, conseq, conf, lift))
             prunedH.append(conseq)
     return prunedH
 
@@ -100,18 +99,18 @@ def add_prefix(row):
         row[index] = index + '_' + str(row[index])
     return row
 
-start = time.time()
 df = pd.read_csv('NFL Play by Play 2009-2017 (v4).csv', dtype=str)
 for col in df:
     df_counts = df[col].value_counts()
     num = df_counts.max()
     name = df_counts.idxmax()
-    if num < len(df)/2 or pd.isnull(name) or name == 'None':
+    if pd.isnull(name) or name == 'None' or num < len(df)/2  or num > len(df)*0.95:
         df.drop(col, axis=1, inplace=True)
 df.fillna(method='ffill')
 df = df.apply(add_prefix,axis=1)
 L, suppData = apriori(np.array(df).tolist() ,minSupport=0.5)
-rules, lifts = generateRules(L, suppData, minConf=0.7)
-end = time.time()
+rules = generateRules(L, suppData, minConf=0.7)
 
-print('\n\n-- 程序运行时间 --: {}'.format(end-start))
+with open('ruls.txt', 'w') as fw:
+    for rule in rules:
+        fw.write('{} --> {} conf: {}   lift: {}\n'.format(rule[0], rule[1], rule[2], rule[3]))
